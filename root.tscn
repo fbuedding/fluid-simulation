@@ -6,8 +6,8 @@
 [ext_resource type="Texture2D" uid="uid://bc44awaa1u357" path="res://icon.svg" id="4_jnlp7"]
 
 [sub_resource type="Gradient" id="Gradient_28aoi"]
-offsets = PackedFloat32Array(0, 0.3, 1)
-colors = PackedColorArray(0.1686666, 0.13999999, 1, 1, 0.01666665, 1, 0, 1, 0.99371475, 0, 0.14944449, 1)
+offsets = PackedFloat32Array(0, 0.1, 0.3, 1)
+colors = PackedColorArray(0.1686666, 0.13999999, 1, 0, 0.1686666, 0.13999999, 1, 1, 0.01666665, 1, 0, 1, 0.99371475, 0, 0.14944449, 1)
 metadata/_snap_enabled = true
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_jnlp7"]
@@ -23,7 +23,6 @@ script = ExtResource("1_pq8q7")
 
 [node name="Fluid Sim" type="Node2D" parent="." node_paths=PackedStringArray("mouse_position_label", "pressure_label", "velocity_label", "divergence_label")]
 script = ExtResource("2_pyidc")
-grid_size = Vector2i(30, 20)
 grid_margin = Vector2(50, 50)
 iterations = 15
 line_color = Color(0.46666667, 0.46666667, 0.46666667, 1)
@@ -34,6 +33,7 @@ interpolation_subdivision = 7
 solid_cell_color = Color(0.26293245, 0.26293245, 0.26293245, 1)
 brush_color = Color(0.32172796, 0.32172796, 0.32172793, 0.6784314)
 velocity_highlight_color = Color(0.6378432, 0.63784313, 0.6378433, 0.6784314)
+overlay = 3
 mouse_position_label = NodePath("../HUD/VBoxContainer/Mouse Position")
 pressure_label = NodePath("../HUD/VBoxContainer/Pressure")
 velocity_label = NodePath("../HUD/VBoxContainer/Velocity")
