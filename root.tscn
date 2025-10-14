@@ -1,0 +1,78 @@
+[gd_scene load_steps=8 format=3 uid="uid://di6glg46gu8vj"]
+
+[ext_resource type="Script" uid="uid://dcmki4n56wv4f" path="res://root.gd" id="1_pq8q7"]
+[ext_resource type="Script" uid="uid://bc711jscgg3dr" path="res://grid.gd" id="2_pyidc"]
+[ext_resource type="Shader" uid="uid://bkfvwbhhdvp4h" path="res://overlay.gdshader" id="3_28aoi"]
+[ext_resource type="Texture2D" uid="uid://bc44awaa1u357" path="res://icon.svg" id="4_jnlp7"]
+
+[sub_resource type="Gradient" id="Gradient_28aoi"]
+offsets = PackedFloat32Array(0, 0.3, 1)
+colors = PackedColorArray(0.1686666, 0.13999999, 1, 1, 0.01666665, 1, 0, 1, 0.99371475, 0, 0.14944449, 1)
+metadata/_snap_enabled = true
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_jnlp7"]
+gradient = SubResource("Gradient_28aoi")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_l8v81"]
+shader = ExtResource("3_28aoi")
+shader_parameter/data = ExtResource("4_jnlp7")
+shader_parameter/gradient = SubResource("GradientTexture1D_jnlp7")
+
+[node name="Root" type="Node2D"]
+script = ExtResource("1_pq8q7")
+
+[node name="Fluid Sim" type="Node2D" parent="." node_paths=PackedStringArray("mouse_position_label", "pressure_label", "velocity_label", "divergence_label")]
+script = ExtResource("2_pyidc")
+grid_size = Vector2i(30, 20)
+grid_margin = Vector2(50, 50)
+iterations = 15
+line_color = Color(0.46666667, 0.46666667, 0.46666667, 1)
+arrow_color = Color(0.35276294, 0.43131372, 0.8007786, 1)
+sub_arrow_color = Color(0.68478155, 0, 0.1802958, 1)
+sub_arrow_line_width = 0.7
+interpolation_subdivision = 7
+solid_cell_color = Color(0.26293245, 0.26293245, 0.26293245, 1)
+brush_color = Color(0.32172796, 0.32172796, 0.32172793, 0.6784314)
+velocity_highlight_color = Color(0.6378432, 0.63784313, 0.6378433, 0.6784314)
+mouse_position_label = NodePath("../HUD/VBoxContainer/Mouse Position")
+pressure_label = NodePath("../HUD/VBoxContainer/Pressure")
+velocity_label = NodePath("../HUD/VBoxContainer/Velocity")
+divergence_label = NodePath("../HUD/VBoxContainer/Divergence")
+brush_intensity = 0.5
+
+[node name="Overlay" type="Sprite2D" parent="Fluid Sim"]
+show_behind_parent = true
+material = SubResource("ShaderMaterial_l8v81")
+texture = ExtResource("4_jnlp7")
+centered = false
+
+[node name="Camera2D" type="Camera2D" parent="."]
+anchor_mode = 0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD"]
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_right = 3.0
+grow_vertical = 2
+
+[node name="Mouse Position" type="Label" parent="HUD/VBoxContainer"]
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="HUD/VBoxContainer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Divergence" type="Label" parent="HUD/VBoxContainer"]
+layout_mode = 2
+vertical_alignment = 2
+
+[node name="Velocity" type="Label" parent="HUD/VBoxContainer"]
+layout_mode = 2
+vertical_alignment = 2
+
+[node name="Pressure" type="Label" parent="HUD/VBoxContainer"]
+layout_mode = 2
+vertical_alignment = 2
