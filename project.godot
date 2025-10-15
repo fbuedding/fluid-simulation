@@ -33,6 +33,10 @@ window/size/viewport_height=720
 
 movie_writer/movie_file="/home/fabian/Data/Github/fluid-simulation/fluid_sim.avi"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot-vim/plugin.cfg")
+
 [input]
 
 brush_toggle={
