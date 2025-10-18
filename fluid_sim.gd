@@ -67,10 +67,15 @@ var rd: RenderingDevice
 
 var pressure_solver_shader_rid: RID
 var packer_shader_rid: RID
+var adjecter_shader_rid: RID
 
 var packed_data_shared_rid: RID
+
 var velocities_x_shared_uniform_rid: RID
 var velocities_y_shared_uniform_rid: RID
+var velocities_x_out_shared_uniform_rid: RID
+var velocities_y_out_shared_uniform_rid: RID
+
 var solids_shared_uniform_rid: RID
 var packer_params_uniform_rid: RID
 var pressure_uniform_rid: RID
@@ -83,6 +88,7 @@ var packed_data_uniform_set_packer: RID
 var packed_data_uniform_set_solver: RID
 var pressure_uniform_set: RID
 var velocity_uniform_set_packer: RID
+var velocity_uniform_set_adjecter: RID
 var packer_params_uniform_set: RID
 var solver_params_uniform_set: RID
 
@@ -110,7 +116,7 @@ func _notification(what: int) -> void:
 		rd.free_rid(packer_pipeline)
 
 
-func swap_velocities() -> void:
+func _swap_velocities() -> void:
 	var velocities_x_tmp := velocities_x
 	velocities_x = velocities_x_1
 	velocities_x_1 = velocities_x_tmp
@@ -165,6 +171,13 @@ func _init_shared_uniform_sets() -> void:
 	)
 	bytes = velocities_y.data.to_byte_array()
 	velocities_y_shared_uniform_rid = _register_uniform(
+		rd, 1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
+	)
+	velocities_x_out_shared_uniform_rid = _register_uniform(
+		rd, 0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
+	)
+	bytes = velocities_y.data.to_byte_array()
+	velocities_y_out_shared_uniform_rid = _register_uniform(
 		rd, 1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
 	)
 	solids_shared_uniform_rid = _register_uniform(
@@ -353,7 +366,7 @@ func _physics_process(_delta: float) -> void:
 
 func step_solver(_delta: float) -> void:
 	advect_velocity(_delta)
-	swap_velocities()
+	_swap_velocities()
 	_update_velocity_buffers()
 	_run_packer(_delta)
 	for _i in iterations:
@@ -732,7 +745,7 @@ func _input(event: InputEvent) -> void:
 		self.velocities_x.rand(10, -10)
 		self.velocities_y.rand(10, -10)
 	if event.is_action_pressed("velocity_swap"):
-		swap_velocities()
+		_swap_velocities()
 	if event.is_action_pressed("velocity_dragging"):
 		dragging = true
 		highlighted_velocity_dragging_start_index = highlighted_velocity_index
