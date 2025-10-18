@@ -1,46 +1,50 @@
-[gd_scene load_steps=8 format=3 uid="uid://di6glg46gu8vj"]
+[gd_scene load_steps=11 format=3 uid="uid://di6glg46gu8vj"]
 
 [ext_resource type="Script" uid="uid://dcmki4n56wv4f" path="res://root.gd" id="1_pq8q7"]
-[ext_resource type="Script" uid="uid://bc711jscgg3dr" path="res://grid.gd" id="2_pyidc"]
+[ext_resource type="Script" uid="uid://bc711jscgg3dr" path="res://fluid_sim.gd" id="2_pyidc"]
 [ext_resource type="Shader" uid="uid://bkfvwbhhdvp4h" path="res://overlay.gdshader" id="3_28aoi"]
 [ext_resource type="Texture2D" uid="uid://bc44awaa1u357" path="res://icon.svg" id="4_jnlp7"]
+[ext_resource type="Theme" uid="uid://dl6quwnvtmc4k" path="res://theme.tres" id="5_jnlp7"]
+[ext_resource type="Script" uid="uid://c5xccy41adidl" path="res://grid.gd" id="5_l8v81"]
 
-[sub_resource type="Gradient" id="Gradient_28aoi"]
-offsets = PackedFloat32Array(0, 0.1, 0.3, 1)
-colors = PackedColorArray(0.1686666, 0.13999999, 1, 0, 0.1686666, 0.13999999, 1, 1, 0.01666665, 1, 0, 1, 0.99371475, 0, 0.14944449, 1)
+[sub_resource type="Gradient" id="Gradient_jnlp7"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.1333332, 0, 1, 1, 0.05000007, 1, 0, 1, 1, 0, 0.016666412, 1)
 metadata/_snap_enabled = true
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_jnlp7"]
-gradient = SubResource("Gradient_28aoi")
+gradient = SubResource("Gradient_jnlp7")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_l8v81"]
 shader = ExtResource("3_28aoi")
-shader_parameter/overlay_type = 1
+shader_parameter/overlay_type = 2
+shader_parameter/pressure_scale = 0.0170000008075
 shader_parameter/data = ExtResource("4_jnlp7")
 shader_parameter/gradient = SubResource("GradientTexture1D_jnlp7")
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_28aoi"]
 
 [node name="Root" type="Node2D"]
 script = ExtResource("1_pq8q7")
 
 [node name="Fluid Sim" type="Node2D" parent="." node_paths=PackedStringArray("mouse_position_label", "pressure_label", "velocity_label", "divergence_label")]
 script = ExtResource("2_pyidc")
-grid_size = Vector2i(30, 20)
-grid_margin = Vector2(50, 50)
+grid_size = Vector2i(50, 30)
+grid_margin = Vector2(0, 30)
 iterations = 15
-line_color = Color(0.46666667, 0.46666667, 0.46666667, 1)
-arrow_color = Color(0.35276294, 0.43131372, 0.8007786, 1)
+arrow_color = Color(1, 1, 1, 1)
 sub_arrow_color = Color(0.68478155, 0, 0.1802958, 1)
+arrow_line_width = 3.0
 sub_arrow_line_width = 0.7
+arrows_visible = true
 interpolation_subdivision = 7
-solid_cell_color = Color(0.26293245, 0.26293245, 0.26293245, 1)
 brush_color = Color(0.32172796, 0.32172796, 0.32172793, 0.6784314)
 velocity_highlight_color = Color(0.6378432, 0.63784313, 0.6378433, 0.6784314)
-overlay = 3
-mouse_position_label = NodePath("../HUD/Window/VBoxContainer/Mouse Position")
-pressure_label = NodePath("../HUD/Window/VBoxContainer/Pressure")
-velocity_label = NodePath("../HUD/Window/VBoxContainer/Velocity")
-divergence_label = NodePath("../HUD/Window/VBoxContainer/Divergence")
-brush_intensity = 2.0
+mouse_position_label = NodePath("../HUD/MarginContainer/VBoxContainer/Controle Bar/Mouse Position")
+pressure_label = NodePath("../HUD/MarginContainer/VBoxContainer/Controle Bar/Pressure")
+velocity_label = NodePath("../HUD/MarginContainer/VBoxContainer/Controle Bar/Velocity")
+divergence_label = NodePath("../HUD/MarginContainer/VBoxContainer/Controle Bar/Divergence")
+brush_intensity = 0.2
 
 [node name="Overlay" type="Sprite2D" parent="Fluid Sim"]
 show_behind_parent = true
@@ -48,38 +52,68 @@ material = SubResource("ShaderMaterial_l8v81")
 texture = ExtResource("4_jnlp7")
 centered = false
 
+[node name="Grid" type="Node2D" parent="Fluid Sim"]
+script = ExtResource("5_l8v81")
+solid_cell_color = Color(0.36, 0.36, 0.36, 1)
+line_color = Color(0.46666667, 0.46666667, 0.46666667, 1)
+
 [node name="Camera2D" type="Camera2D" parent="."]
 anchor_mode = 0
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
-[node name="Window" type="Window" parent="HUD"]
-oversampling_override = 1.0
-initial_position = 1
-content_scale_mode = 2
-
-[node name="VBoxContainer" type="VBoxContainer" parent="HUD/Window"]
-anchors_preset = 9
+[node name="MarginContainer" type="MarginContainer" parent="HUD"]
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = 33.0
-offset_bottom = 38.0
+grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_jnlp7")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="HSeparator" type="HSeparator" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/separator = SubResource("StyleBoxEmpty_28aoi")
+
+[node name="Controle Bar" type="HBoxContainer" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="Mouse Position" type="Label" parent="HUD/Window/VBoxContainer"]
+[node name="Mouse Position" type="Label" parent="HUD/MarginContainer/VBoxContainer/Controle Bar"]
 layout_mode = 2
 
-[node name="Divergence" type="Label" parent="HUD/Window/VBoxContainer"]
-layout_mode = 2
-vertical_alignment = 2
-
-[node name="Velocity" type="Label" parent="HUD/Window/VBoxContainer"]
+[node name="Divergence" type="Label" parent="HUD/MarginContainer/VBoxContainer/Controle Bar"]
 layout_mode = 2
 vertical_alignment = 2
 
-[node name="Pressure" type="Label" parent="HUD/Window/VBoxContainer"]
+[node name="Velocity" type="Label" parent="HUD/MarginContainer/VBoxContainer/Controle Bar"]
+layout_mode = 2
+vertical_alignment = 2
+
+[node name="Pressure" type="Label" parent="HUD/MarginContainer/VBoxContainer/Controle Bar"]
 layout_mode = 2
 text = "Test
 "
 vertical_alignment = 2
+
+[node name="OptionButton" type="OptionButton" parent="HUD/MarginContainer/VBoxContainer/Controle Bar"]
+layout_mode = 2
+selected = 2
+allow_reselect = true
+item_count = 4
+popup/item_0/id = 0
+popup/item_1/text = "Velocity"
+popup/item_1/id = 1
+popup/item_2/text = "Pressure"
+popup/item_2/id = 2
+popup/item_3/text = "Divergence"
+popup/item_3/id = 3
+
+[connection signal="item_selected" from="HUD/MarginContainer/VBoxContainer/Controle Bar/OptionButton" to="Fluid Sim" method="overlay_selected"]
