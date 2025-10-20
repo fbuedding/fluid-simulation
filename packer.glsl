@@ -11,11 +11,11 @@ layout(set = 0, binding = 0, std430) restrict buffer PackeData {
 } packed_data;
 
 layout(set = 1, binding = 0, std430) restrict buffer VelocityX {
-    double data[];
+    float data[];
 } velocity_x;
 
 layout(set = 1, binding = 1, std430) restrict buffer VelocityY {
-    double data[];
+    float data[];
 } velocity_y;
 
 layout(set = 1, binding = 2, std430) restrict buffer Solids {
@@ -36,12 +36,12 @@ int is_solid_cell(int x, int y) {
     return (solids.data[i] >> n) & 1;
 }
 
-double get_velocity_x(int x, int y) {
+float get_velocity_x(int x, int y) {
     x = clamp(x, 0, grid_size.x);
     y = clamp(y, 0, grid_size.y - 1);
     return velocity_x.data[(grid_size.x + 1) * y + x];
 }
-double get_velocity_y(int x, int y) {
+float get_velocity_y(int x, int y) {
     x = clamp(x, 0, grid_size.x - 1);
     y = clamp(y, 0, grid_size.y);
     return velocity_y.data[(grid_size.x) * y + x];
@@ -60,14 +60,14 @@ void main() {
 
     int packed_edge_flow = flow_top << 0 | flow_right << 1 | flow_bottom << 2 | flow_left << 3;
 
-    double velocity_top = get_velocity_y(x, y);
-    double velocity_right = get_velocity_x(x + 1, y);
-    double velocity_bottom = get_velocity_y(x, y + 1);
-    double velocity_left = get_velocity_x(x, y);
+    float velocity_top = get_velocity_y(x, y);
+    float velocity_right = get_velocity_x(x + 1, y);
+    float velocity_bottom = get_velocity_y(x, y + 1);
+    float velocity_left = get_velocity_x(x, y);
 
-    double velocity_term = 0.0;
+    float velocity_term = 0.0;
     int flow_count = flow_top + flow_right + flow_bottom + flow_left;
-    double delta_velocity = velocity_right - velocity_left + velocity_bottom - velocity_top;
+    float delta_velocity = velocity_right - velocity_left + velocity_bottom - velocity_top;
     if (flow_count > 0) {
         velocity_term = delta_velocity / (flow_count * K);
     }

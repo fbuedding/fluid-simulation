@@ -29,15 +29,15 @@ const highlight_solid_cell: bool = true
 @onready var overlay_node: Sprite2D = $Overlay
 @onready var grid_node: Grid = $Grid
 
-var pressures: Double2DArray
-var divergence: Double2DArray
+var pressures: Float2DArray
+var divergence: Float2DArray
 var solid_cells: Packed2dBooleanArray
 var packed_compute_data: PackedVector2Array
-var velocities_x: Double2DArray
-var velocities_y: Double2DArray
+var velocities_x: Float2DArray
+var velocities_y: Float2DArray
 
-var velocities_x_1: Double2DArray
-var velocities_y_1: Double2DArray
+var velocities_x_1: Float2DArray
+var velocities_y_1: Float2DArray
 
 var window_size: Vector2
 var cell_size: float
@@ -67,31 +67,37 @@ var rd: RenderingDevice
 
 var pressure_solver_shader_rid: RID
 var packer_shader_rid: RID
-var adjecter_shader_rid: RID
+var advecter_shader_rid: RID
 
 var packed_data_shared_rid: RID
 
 var velocities_x_shared_uniform_rid: RID
 var velocities_y_shared_uniform_rid: RID
-var velocities_x_out_shared_uniform_rid: RID
-var velocities_y_out_shared_uniform_rid: RID
+var velocities_x_in_shared_uniform_rid: RID
+var velocities_y_in_shared_uniform_rid: RID
 
 var solids_shared_uniform_rid: RID
 var packer_params_uniform_rid: RID
 var pressure_uniform_rid: RID
 var solver_param_uniform_rid: RID
+var advecter_params_uniform_rid: RID
 
 var packed_data_set: Array[RDUniform] = []
 var velocity_set: Array[RDUniform] = []
+var velocity_in_set: Array[RDUniform] = []
 
 var packed_data_uniform_set_packer: RID
 var packed_data_uniform_set_solver: RID
 var pressure_uniform_set: RID
 var velocity_uniform_set_packer: RID
-var velocity_uniform_set_adjecter: RID
+var velocity_uniform_set_advecter: RID
+var velocity_in_uniform_set_advecter: RID
+
 var packer_params_uniform_set: RID
 var solver_params_uniform_set: RID
+var advecter_params_uniform_set: RID
 
+var advecter_pipeline: RID
 var solver_pipeline: RID
 var packer_pipeline: RID
 
@@ -101,38 +107,48 @@ func _notification(what: int) -> void:
 		rd.free_rid(pressure_solver_shader_rid)
 		rd.free_rid(packer_shader_rid)
 		rd.free_rid(packed_data_shared_rid)
+		rd.free_rid(advecter_shader_rid)
 		rd.free_rid(velocities_x_shared_uniform_rid)
 		rd.free_rid(velocities_y_shared_uniform_rid)
+		rd.free_rid(velocities_x_in_shared_uniform_rid)
+		rd.free_rid(velocities_y_in_shared_uniform_rid)
 		rd.free_rid(solids_shared_uniform_rid)
 		rd.free_rid(packer_params_uniform_rid)
+		rd.free_rid(advecter_params_uniform_rid)
 		rd.free_rid(pressure_uniform_rid)
 		rd.free_rid(solver_param_uniform_rid)
 		rd.free_rid(packed_data_uniform_set_packer)
 		rd.free_rid(pressure_uniform_set)
 		rd.free_rid(velocity_uniform_set_packer)
+		rd.free_rid(velocity_uniform_set_advecter)
+		rd.free_rid(velocity_in_uniform_set_advecter)
 		rd.free_rid(packer_params_uniform_set)
 		rd.free_rid(solver_params_uniform_set)
+		rd.free_rid(advecter_params_uniform_set)
 		rd.free_rid(solver_pipeline)
 		rd.free_rid(packer_pipeline)
+		rd.free_rid(advecter_pipeline)
 
 
 func _swap_velocities() -> void:
-	var velocities_x_tmp := velocities_x
+	var tmp := velocities_x
 	velocities_x = velocities_x_1
-	velocities_x_1 = velocities_x_tmp
-	var velocities_y_tmp := velocities_y
+	velocities_x_1 = tmp
+	
+	tmp = velocities_y
 	velocities_y = velocities_y_1
-	velocities_y_1 = velocities_y_tmp
+	velocities_y_1 = tmp
+
 
 
 func _ready() -> void:
 	calc_sizes_and_offsets()
-	self.pressures = Double2DArray.new(grid_size.x, grid_size.y)
-	self.divergence = Double2DArray.new(grid_size.x, grid_size.y)
-	self.velocities_x = Double2DArray.new(grid_size.x + 1, grid_size.y)
-	self.velocities_y = Double2DArray.new(grid_size.x, grid_size.y + 1)
-	self.velocities_x_1 = Double2DArray.new(grid_size.x + 1, grid_size.y)
-	self.velocities_y_1 = Double2DArray.new(grid_size.x, grid_size.y + 1)
+	self.pressures = Float2DArray.new(grid_size.x, grid_size.y)
+	self.divergence = Float2DArray.new(grid_size.x, grid_size.y)
+	self.velocities_x = Float2DArray.new(grid_size.x + 1, grid_size.y)
+	self.velocities_y = Float2DArray.new(grid_size.x, grid_size.y + 1)
+	self.velocities_x_1 = Float2DArray.new(grid_size.x + 1, grid_size.y)
+	self.velocities_y_1 = Float2DArray.new(grid_size.x, grid_size.y + 1)
 	packed_compute_data = PackedVector2Array()
 	packed_compute_data.resize(grid_size.x * grid_size.y)
 
@@ -140,13 +156,22 @@ func _ready() -> void:
 	for y in grid_size.y:
 		for x in grid_size.x:
 			if x == 0 || y == 0 || x == grid_size.x - 1 || y == grid_size.y - 1:
-				solid_cells.set_val(x, y, true)
+				solid_cells.set_val(x, y, false)
 			else:
 				solid_cells.set_val(x, y, false)
 	grid_node.set_params(grid_size, cell_size, solid_cells.to_2d_arr())
 	grid_node.position = grid_offset
 	calc_divergence()
+	#self.pressures.rand(5, -5)
+	#self.velocities_x.rand(10, -10)
+	#self.velocities_y.rand(10, -10)
+	velocities_x.set_val(
+					3,
+					5,
+					20
+				)
 	_init_compute_shaders()
+
 
 
 func _init_compute_shaders() -> void:
@@ -154,10 +179,10 @@ func _init_compute_shaders() -> void:
 	_init_shared_uniform_sets()
 	_init_packer()
 	_init_solver()
+	_init_advecter()
 
 
 func _init_shared_uniform_sets() -> void:
-	pass
 	packed_data_shared_rid = _register_uniform(
 		rd,
 		0,
@@ -169,16 +194,15 @@ func _init_shared_uniform_sets() -> void:
 	velocities_x_shared_uniform_rid = _register_uniform(
 		rd, 0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
 	)
+	velocities_x_in_shared_uniform_rid = _register_uniform(
+		rd, 0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_in_set, bytes.size(), bytes
+	)
 	bytes = velocities_y.data.to_byte_array()
 	velocities_y_shared_uniform_rid = _register_uniform(
 		rd, 1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
 	)
-	velocities_x_out_shared_uniform_rid = _register_uniform(
-		rd, 0, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
-	)
-	bytes = velocities_y.data.to_byte_array()
-	velocities_y_out_shared_uniform_rid = _register_uniform(
-		rd, 1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_set, bytes.size(), bytes
+	velocities_y_in_shared_uniform_rid = _register_uniform(
+		rd, 1, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, velocity_in_set, bytes.size(), bytes
 	)
 	solids_shared_uniform_rid = _register_uniform(
 		rd,
@@ -260,9 +284,31 @@ func _init_packer() -> void:
 	packer_pipeline = rd.compute_pipeline_create(packer_shader_rid)
 
 
-func _init_velocity_advecter() -> void:
-	pass
-
+func _init_advecter() -> void:
+	advecter_shader_rid =_create_shader("res://advecter.glsl")
+	assert(packer_shader_rid.is_valid(), "Could not create shader")
+	
+	var param_advecter_set: Array[RDUniform] = []
+	var params := PackedInt32Array()
+	params.resize(4)  # 8 padding bytes
+	params[0] = grid_size.x
+	params[1] = grid_size.y
+	params[2] = 0
+	params[3] = 0
+	advecter_params_uniform_rid = _register_uniform(
+		rd,
+		0,
+		RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER,
+		param_advecter_set,
+		params.to_byte_array().size(),
+		params.to_byte_array()
+	)
+	
+	velocity_in_uniform_set_advecter = rd.uniform_set_create(velocity_in_set,advecter_shader_rid, 0)
+	velocity_uniform_set_advecter = rd.uniform_set_create(velocity_set, advecter_shader_rid,1)
+	advecter_params_uniform_set = rd.uniform_set_create(param_advecter_set, advecter_shader_rid,2)
+	
+	advecter_pipeline = rd.compute_pipeline_create(advecter_shader_rid)
 
 func _run_pressure_solver() -> void:
 	var list := rd.compute_list_begin()
@@ -303,19 +349,45 @@ func _run_packer(delta: float) -> void:
 	rd.compute_list_end()
 	rd.submit()
 	rd.sync()
+	
+func _run_advecter(delta: float) -> void:
+	rd.buffer_update(advecter_params_uniform_rid, 4 * 2, 4, PackedFloat32Array([delta]).to_byte_array())
+	var list := rd.compute_list_begin()
+	rd.compute_list_bind_compute_pipeline(list, advecter_pipeline)
+	rd.compute_list_bind_uniform_set(list, velocity_in_uniform_set_advecter, 0)
+	rd.compute_list_bind_uniform_set(list, velocity_uniform_set_advecter, 1)
+	rd.compute_list_bind_uniform_set(list, advecter_params_uniform_set, 2)
+	@warning_ignore("integer_division")
+	rd.compute_list_dispatch(list, _ceiling_div((grid_size.x +1) * (grid_size.y +1), 16) , 1, 1)
+	rd.compute_list_end()
+	rd.submit()
+	rd.sync()
 
 
 func _get_pressure() -> void:
 	var output_bytes := rd.buffer_get_data(pressure_uniform_rid)
-	pressures.data = output_bytes.to_float64_array()
+	pressures.data = output_bytes.to_float32_array()
 
+func _get_velocity_x() -> void:
+	var output_bytes := rd.buffer_get_data(velocities_x_shared_uniform_rid)
+	print(output_bytes.to_float32_array())
+	
+func _get_velocity_y() -> void:
+	var output_bytes := rd.buffer_get_data(velocities_y_shared_uniform_rid)
+	print(output_bytes.to_float32_array())
 
 func _update_velocity_buffers() -> void:
+	#var bytes := velocities_x.data.to_byte_array()
+	#rd.buffer_update(velocities_x_in_shared_uniform_rid, 0, bytes.size(), bytes)
+	#bytes = velocities_y.data.to_byte_array()
+	#rd.buffer_update(velocities_y_in_shared_uniform_rid, 0, bytes.size(), bytes)
 	var bytes := velocities_x.data.to_byte_array()
-	rd.buffer_update(velocities_x_shared_uniform_rid, 0, bytes.size(), bytes)
+	#rd.buffer_update(velocities_x_shared_uniform_rid, 0, bytes.size(), bytes)
+	rd.buffer_update(velocities_x_in_shared_uniform_rid, 0, bytes.size(), bytes)
 	bytes = velocities_y.data.to_byte_array()
-	rd.buffer_update(velocities_y_shared_uniform_rid, 0, bytes.size(), bytes)
-	pass
+	#rd.buffer_update(velocities_y_shared_uniform_rid, 0, bytes.size(), bytes)
+	rd.buffer_update(velocities_y_in_shared_uniform_rid, 0, bytes.size(), bytes)
+
 
 
 func _create_shader(path: String) -> RID:
@@ -359,21 +431,28 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	# calc_divergence()
+	calc_divergence()
 	if solver_enabled:
 		step_solver(_delta)
 
 
 func step_solver(_delta: float) -> void:
-	advect_velocity(_delta)
-	_swap_velocities()
-	_update_velocity_buffers()
+	#advect_velocity(_delta)
+	
+	_run_advecter(_delta)
+	print("Velocity X")
+	_get_velocity_x()
+	print("Velocity Y")
+	_get_velocity_y()
+	#_swap_velocities()
+	#_update_velocity_buffers()
 	_run_packer(_delta)
 	for _i in iterations:
 		_run_pressure_solver()
 		_get_pressure()
 		pass
 	update_velocities(_delta)
+	_update_velocity_buffers()
 
 
 func _draw() -> void:
@@ -593,7 +672,7 @@ func update_velocities(_delta: float) -> void:
 			velocities_y.sub_val(x, y, K * (pressures.get_val(x, y) - pressures.get_val(x, y - 1)))
 
 
-func draw_values(data: Double2DArray) -> void:
+func draw_values(data: Float2DArray) -> void:
 	for y in data.height:
 		for x in data.width:
 			var value := data.get_scaled_val(x, y)
@@ -648,7 +727,7 @@ func sample_velocity_at_position(pos: Vector2) -> Vector2:
 	)
 
 
-func sample_bilinear(data: Double2DArray, pos: Vector2i, frac: Vector2) -> float:
+func sample_bilinear(data: Float2DArray, pos: Vector2i, frac: Vector2) -> float:
 	var x := pos.x
 	var y := pos.y
 	var top_left := data.get_val(x, y)
@@ -744,8 +823,6 @@ func _input(event: InputEvent) -> void:
 		self.pressures.rand(5, -5)
 		self.velocities_x.rand(10, -10)
 		self.velocities_y.rand(10, -10)
-	if event.is_action_pressed("velocity_swap"):
-		_swap_velocities()
 	if event.is_action_pressed("velocity_dragging"):
 		dragging = true
 		highlighted_velocity_dragging_start_index = highlighted_velocity_index
@@ -848,16 +925,16 @@ class Packed2dBooleanArray:
 		return (x + y - 1) / y
 
 
-class Double2DArray:
+class Float2DArray:
 	extends RefCounted
 	var width: int
 	var height: int
-	var data: PackedFloat64Array
+	var data: PackedFloat32Array
 
 	func _init(w: int, h: int) -> void:
 		width = w
 		height = h
-		data = PackedFloat64Array()
+		data = PackedFloat32Array()
 		data.resize(w * h)
 
 	func _find_min() -> float:

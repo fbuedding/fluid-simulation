@@ -29,9 +29,9 @@ script = ExtResource("1_pq8q7")
 
 [node name="Fluid Sim" type="Node2D" parent="." node_paths=PackedStringArray("mouse_position_label", "pressure_label", "velocity_label", "divergence_label")]
 script = ExtResource("2_pyidc")
-grid_size = Vector2i(50, 30)
+grid_size = Vector2i(10, 10)
 grid_margin = Vector2(0, 30)
-iterations = 15
+iterations = 50
 arrow_color = Color(1, 1, 1, 1)
 sub_arrow_color = Color(0.68478155, 0, 0.1802958, 1)
 arrow_line_width = 3.0

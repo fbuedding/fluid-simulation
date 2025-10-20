@@ -11,7 +11,7 @@ layout(set = 0, binding = 0, std430) restrict buffer PressureSolveData {
 pressureSolveData;
 
 layout(set = 1, binding = 0, std430) restrict buffer Pressure {
-    double data[];
+    float data[];
 }
 pressure;
 layout(set = 2, binding = 0, std140) uniform Param {
@@ -41,7 +41,7 @@ ivec2 checkboard_coord(int i) {
     return ivec2(x, y);
 }
 
-double get_pressure(int x, int y) {
+float get_pressure(int x, int y) {
     // if (x < 0 || x >= grid_size.x || y < 0 || y >= grid_size.y) return 0.0;
     x = clamp(x, 0, grid_size.x - 1);
     y = clamp(y, 0, grid_size.y - 1);
@@ -63,13 +63,13 @@ void main() {
     int edge_flow_count = flow_top + flow_right + flow_bottom + flow_left;
     if (edge_flow_count == 0) return;
 
-    double pressure_top = get_pressure(cell.x - 1, cell.y) * flow_top;
-    double pressure_right = get_pressure(cell.x, cell.y + 1) * flow_right;
-    double pressure_bottom = get_pressure(cell.x + 1, cell.y) * flow_bottom;
-    double pressure_left = get_pressure(cell.x, cell.y - 1) * flow_left;
+    float pressure_top = get_pressure(cell.x - 1, cell.y) * flow_top;
+    float pressure_right = get_pressure(cell.x, cell.y + 1) * flow_right;
+    float pressure_bottom = get_pressure(cell.x + 1, cell.y) * flow_bottom;
+    float pressure_left = get_pressure(cell.x, cell.y - 1) * flow_left;
 
-    double pressure_term = (pressure_top + pressure_right + pressure_bottom + pressure_left) / edge_flow_count;
-    double pressure_new = pressure_term - velocity_term;
-    double pressure_old = pressure.data[i];
+    float pressure_term = (pressure_top + pressure_right + pressure_bottom + pressure_left) / edge_flow_count;
+    float pressure_new = pressure_term - velocity_term;
+    float pressure_old = pressure.data[i];
     pressure.data[i] = pressure_old + (pressure_new - pressure_old) * 1.7;
 }
