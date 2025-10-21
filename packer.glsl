@@ -28,8 +28,9 @@ layout(set = 2, binding = 0, std140) uniform Param {
 };
 
 int is_solid_cell(int x, int y) {
-    x = clamp(x, 0, grid_size.x - 1);
-    y = clamp(y, 0, grid_size.y - 1);
+    if (x < 0 || x >= grid_size.x || y < 0 || y >= grid_size.y) return 1;
+    // x = clamp(x, 0, grid_size.x - 1);
+    // y = clamp(y, 0, grid_size.y - 1);
     int i = y * grid_size.x + x;
     int n = i % 32;
     i /= 32;
@@ -37,13 +38,15 @@ int is_solid_cell(int x, int y) {
 }
 
 float get_velocity_x(int x, int y) {
-    x = clamp(x, 0, grid_size.x);
-    y = clamp(y, 0, grid_size.y - 1);
+    if (x < 0 || x > grid_size.x || y < 0 || y >= grid_size.y) return 0.0;
+    // x = clamp(x, 0, grid_size.x);
+    // y = clamp(y, 0, grid_size.y - 1);
     return velocity_x.data[(grid_size.x + 1) * y + x];
 }
 float get_velocity_y(int x, int y) {
-    x = clamp(x, 0, grid_size.x - 1);
-    y = clamp(y, 0, grid_size.y);
+    if (x < 0 || x >= grid_size.x || y < 0 || y > grid_size.y) return 0.0;
+    // x = clamp(x, 0, grid_size.x - 1);
+    // y = clamp(y, 0, grid_size.y);
     return velocity_y.data[(grid_size.x) * y + x];
 }
 

@@ -134,11 +134,10 @@ func _swap_velocities() -> void:
 	var tmp := velocities_x
 	velocities_x = velocities_x_1
 	velocities_x_1 = tmp
-	
+
 	tmp = velocities_y
 	velocities_y = velocities_y_1
 	velocities_y_1 = tmp
-
 
 
 func _ready() -> void:
@@ -162,16 +161,11 @@ func _ready() -> void:
 	grid_node.set_params(grid_size, cell_size, solid_cells.to_2d_arr())
 	grid_node.position = grid_offset
 	calc_divergence()
-	#self.pressures.rand(5, -5)
-	#self.velocities_x.rand(10, -10)
-	#self.velocities_y.rand(10, -10)
-	velocities_x.set_val(
-					3,
-					5,
-					20
-				)
+	self.pressures.rand(5, -5)
+	self.velocities_x.rand(10, -10)
+	self.velocities_y.rand(10, -10)
+	velocities_x.set_val(3, 5, 20)
 	_init_compute_shaders()
-
 
 
 func _init_compute_shaders() -> void:
@@ -285,9 +279,9 @@ func _init_packer() -> void:
 
 
 func _init_advecter() -> void:
-	advecter_shader_rid =_create_shader("res://advecter.glsl")
+	advecter_shader_rid = _create_shader("res://advecter.glsl")
 	assert(packer_shader_rid.is_valid(), "Could not create shader")
-	
+
 	var param_advecter_set: Array[RDUniform] = []
 	var params := PackedInt32Array()
 	params.resize(4)  # 8 padding bytes
@@ -303,12 +297,15 @@ func _init_advecter() -> void:
 		params.to_byte_array().size(),
 		params.to_byte_array()
 	)
-	
-	velocity_in_uniform_set_advecter = rd.uniform_set_create(velocity_in_set,advecter_shader_rid, 0)
-	velocity_uniform_set_advecter = rd.uniform_set_create(velocity_set, advecter_shader_rid,1)
-	advecter_params_uniform_set = rd.uniform_set_create(param_advecter_set, advecter_shader_rid,2)
-	
+
+	velocity_in_uniform_set_advecter = rd.uniform_set_create(
+		velocity_in_set, advecter_shader_rid, 0
+	)
+	velocity_uniform_set_advecter = rd.uniform_set_create(velocity_set, advecter_shader_rid, 1)
+	advecter_params_uniform_set = rd.uniform_set_create(param_advecter_set, advecter_shader_rid, 2)
+
 	advecter_pipeline = rd.compute_pipeline_create(advecter_shader_rid)
+
 
 func _run_pressure_solver() -> void:
 	var list := rd.compute_list_begin()
@@ -349,16 +346,19 @@ func _run_packer(delta: float) -> void:
 	rd.compute_list_end()
 	rd.submit()
 	rd.sync()
-	
+
+
 func _run_advecter(delta: float) -> void:
-	rd.buffer_update(advecter_params_uniform_rid, 4 * 2, 4, PackedFloat32Array([delta]).to_byte_array())
+	rd.buffer_update(
+		advecter_params_uniform_rid, 4 * 2, 4, PackedFloat32Array([delta]).to_byte_array()
+	)
 	var list := rd.compute_list_begin()
 	rd.compute_list_bind_compute_pipeline(list, advecter_pipeline)
 	rd.compute_list_bind_uniform_set(list, velocity_in_uniform_set_advecter, 0)
 	rd.compute_list_bind_uniform_set(list, velocity_uniform_set_advecter, 1)
 	rd.compute_list_bind_uniform_set(list, advecter_params_uniform_set, 2)
 	@warning_ignore("integer_division")
-	rd.compute_list_dispatch(list, _ceiling_div((grid_size.x +1) * (grid_size.y +1), 16) , 1, 1)
+	rd.compute_list_dispatch(list, _ceiling_div((grid_size.x + 1) * (grid_size.y + 1), 16), 1, 1)
 	rd.compute_list_end()
 	rd.submit()
 	rd.sync()
@@ -368,26 +368,36 @@ func _get_pressure() -> void:
 	var output_bytes := rd.buffer_get_data(pressure_uniform_rid)
 	pressures.data = output_bytes.to_float32_array()
 
+
 func _get_velocity_x() -> void:
-	var output_bytes := rd.buffer_get_data(velocities_x_shared_uniform_rid)
-	print(output_bytes.to_float32_array())
-	
+	var output := rd.buffer_get_data(velocities_x_shared_uniform_rid).to_float32_array()
+	var out := ""
+	for y in grid_size.y:
+		out += "%d\t" % y
+		for x in grid_size.x + 1:
+			out += "%f\t" % output[y * (grid_size.x + 1) + x]
+		out += "\n"
+	print(out)
+
+
 func _get_velocity_y() -> void:
-	var output_bytes := rd.buffer_get_data(velocities_y_shared_uniform_rid)
-	print(output_bytes.to_float32_array())
+	var output := rd.buffer_get_data(velocities_y_shared_uniform_rid).to_float32_array()
+	var out := ""
+	for y in grid_size.y + 1:
+		out += "%d\t" % y
+		for x in grid_size.x:
+			out += "%f\t" % output[y * (grid_size.x) + x]
+		out += "\n"
+	print(out)
+
 
 func _update_velocity_buffers() -> void:
-	#var bytes := velocities_x.data.to_byte_array()
-	#rd.buffer_update(velocities_x_in_shared_uniform_rid, 0, bytes.size(), bytes)
-	#bytes = velocities_y.data.to_byte_array()
-	#rd.buffer_update(velocities_y_in_shared_uniform_rid, 0, bytes.size(), bytes)
 	var bytes := velocities_x.data.to_byte_array()
-	#rd.buffer_update(velocities_x_shared_uniform_rid, 0, bytes.size(), bytes)
+	rd.buffer_update(velocities_x_shared_uniform_rid, 0, bytes.size(), bytes)
 	rd.buffer_update(velocities_x_in_shared_uniform_rid, 0, bytes.size(), bytes)
 	bytes = velocities_y.data.to_byte_array()
-	#rd.buffer_update(velocities_y_shared_uniform_rid, 0, bytes.size(), bytes)
+	rd.buffer_update(velocities_y_shared_uniform_rid, 0, bytes.size(), bytes)
 	rd.buffer_update(velocities_y_in_shared_uniform_rid, 0, bytes.size(), bytes)
-
 
 
 func _create_shader(path: String) -> RID:
@@ -431,28 +441,39 @@ func _process(_delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	calc_divergence()
 	if solver_enabled:
-		step_solver(_delta)
+		step_solver_cpu(_delta)
 
 
-func step_solver(_delta: float) -> void:
-	#advect_velocity(_delta)
-	
-	_run_advecter(_delta)
-	print("Velocity X")
-	_get_velocity_x()
-	print("Velocity Y")
-	_get_velocity_y()
-	#_swap_velocities()
-	#_update_velocity_buffers()
+func step_solver_cpu(_delta: float) -> void:
+	advect_velocity(_delta)
+	_swap_velocities()
+	_pack_compute_data(_delta)
+	for _i in iterations:
+		solve_pressure(_delta)
+
+		pass
+	_update_velocities(_delta)
+	calc_divergence()
+
+
+func step_solver_gpu(_delta: float) -> void:
+	# _update_velocity_buffers()
+	# _run_advecter(_delta)
+	# print("Velocity X")
+	# _get_velocity_x()
+	# print("Velocity Y")
+	# _get_velocity_y()
+
+	# advect_velocity(_delta)
+	# _swap_velocities()
+	_update_velocity_buffers()
 	_run_packer(_delta)
 	for _i in iterations:
 		_run_pressure_solver()
 		_get_pressure()
 		pass
-	update_velocities(_delta)
-	_update_velocity_buffers()
+	_update_velocities(_delta)
 
 
 func _draw() -> void:
@@ -656,7 +677,8 @@ func solve_pressure(_delta: float) -> void:
 			pressures.set_val(x, y, pressure_old + (pressure_new - pressure_old) * 1.7)
 
 
-func update_velocities(_delta: float) -> void:
+## Calculates changes of velocity and subtracts it
+func _update_velocities(_delta: float) -> void:
 	var K := _delta / (density * cell_size)
 	for y in velocities_x.height:
 		for x in velocities_x.width:
@@ -839,7 +861,7 @@ func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("brush_decrease"):
 		brush_radius -= 10
 	if event.is_action_pressed("solver_step"):
-		step_solver(DELTA)
+		step_solver_cpu(DELTA)
 	elif event.is_action_pressed("solver_toggle"):
 		solver_enabled = !solver_enabled
 	if event is InputEventMouseMotion:

@@ -41,14 +41,16 @@ int is_solid_cell(float x, float y) {
 }
 
 float get_velocity_x(float x, float y) {
-    x = clamp(x, 0, grid_size.x);
-    y = clamp(y, 0, grid_size.y - 1);
+    if (x < 0 || x > grid_size.x || y < 0 || y >= grid_size.y) return 0.0;
+    // x = clamp(x, 0, grid_size.x);
+    // y = clamp(y, 0, grid_size.y - 1);
     return velocity_x_in.data[int((grid_size.x + 1) * y + x)];
 }
 
 float get_velocity_y(float x, float y) {
-    x = clamp(x, 0, grid_size.x - 1);
-    y = clamp(y, 0, grid_size.y);
+    if (x < 0 || x >= grid_size.x || y < 0 || y > grid_size.y) return 0.0;
+    // x = clamp(x, 0, grid_size.x - 1);
+    // y = clamp(y, 0, grid_size.y);
     return velocity_y_in.data[int((grid_size.x) * y + x)];
 }
 
@@ -108,7 +110,7 @@ void main() {
     if (y <= grid_size.y) {
         pos_mid = pos - 0.5 * delta * sample_velocity_at_grid_position(pos);
         pos = pos - delta * sample_velocity_at_grid_position(pos_mid);
-        // velocity_x.data[y * (grid_size.x + 1) + x] = grid_size.x; //sample_velocity_at_grid_position(pos).x;
+        // velocity_x.data[y * (grid_size.x + 1) + x] = x;
         velocity_x.data[y * (grid_size.x + 1) + x] = sample_velocity_at_grid_position(pos).x;
     }
     if (x <= grid_size.x) {
@@ -117,5 +119,6 @@ void main() {
         pos_mid = pos - 0.5 * delta * sample_velocity_at_grid_position(pos);
         pos = pos - delta * sample_velocity_at_grid_position(pos_mid);
         velocity_y.data[y * (grid_size.x) + x] = sample_velocity_at_grid_position(pos).y;
+        // velocity_y.data[y * (grid_size.x) + x] = x;
     }
 }
